@@ -51,10 +51,10 @@ class PostDetailView(DetailView):
     pk_url_kwarg = 'post_id'
 
     def dispatch(self, request, *args, **kwargs):
-        if ((self.get_object().is_published is False or
-             self.get_object().category.is_published is False or
-             self.get_object().pub_date > timezone.now()) and
-                self.request.user != self.get_object().author):
+        if ((self.get_object().is_published is False
+             or self.get_object().category.is_published is False
+             or self.get_object().pub_date > timezone.now())
+           and self.request.user != self.get_object().author):
             return page_not_found(request, '404.html')
         return super().dispatch(request, *args, **kwargs)
 
