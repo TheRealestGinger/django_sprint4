@@ -132,8 +132,8 @@ class ProfileDetailView(DetailView, MultipleObjectMixin):
         author = self.get_object()
         context = super().get_context_data(
             object_list=posts_filter(
-                author.posts.select_related('author'),
-                False if author == self.request.user else True
+                author.posts,
+                author != self.request.user
             ),
             profile=author,
             **kwargs
@@ -150,7 +150,7 @@ class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     def get_object(self, queryset=None):
         return get_object_or_404(
             User,
-            username=self.kwargs[self.slug_field]
+            username=str(self.request.user)
         )
 
     def get_success_url(self):
