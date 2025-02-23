@@ -39,15 +39,15 @@ class CategoryDetailView(DetailView, MultipleObjectMixin):
 
     def get_context_data(self, **kwargs):
         return super(CategoryDetailView, self).get_context_data(
-                object_list=posts_filter(
-                    self.object.posts.select_related(
-                        'category', 'location'
-                    ).annotate(comment_count=Count('comments')).order_by(
-                        *Post._meta.ordering
-                    )
-                ),
-                **kwargs
-            )
+            object_list=posts_filter(
+                self.object.posts.select_related(
+                    'category', 'location'
+                ).annotate(comment_count=Count('comments')).order_by(
+                    *Post._meta.ordering
+                )
+            ),
+            **kwargs
+        )
 
 
 class PostDetailView(DetailView, OnlyAuthorMixin):
