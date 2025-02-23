@@ -1,21 +1,21 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.views.generic import (
     CreateView,
-    DetailView,
-    UpdateView,
     DeleteView,
-    ListView
+    DetailView,
+    ListView,
+    UpdateView
 )
 from django.views.generic.list import MultipleObjectMixin
-from django.urls import reverse
 
-from .forms import PostForm, CommentForm, UserForm
-from .models import Post, Category, Comment, User
+from .forms import CommentForm, PostForm, UserForm
+from .models import Category, Comment, Post, User
 from .utils import (
-    OnlyAuthorMixin,
     CommentDeleteUpdateMixin,
+    OnlyAuthorMixin,
     PostDeleteUpdateMixin,
     posts_filter
 )
@@ -31,18 +31,23 @@ class CategoryDetailView(DetailView, MultipleObjectMixin):
     paginate_by = PAGINATION_BY
 
     def get_object(self, queryset=None):
-        category = super().get_object(queryset)
-        if not category.is_published:
-            return get_object_or_404(Category, is_published=True)
-        return category
+        return get_object_or_404(
+            Category,
+            is_published=True,
+            pk=super().get_object(queryset).pk
+        )
 
     def get_context_data(self, **kwargs):
         return super(CategoryDetailView, self).get_context_data(
-            object_list=posts_filter(
-                self.object.posts.select_related('category')
-            ).annotate(comment_count=Count('comments')).order_by('-pub_date'),
-            **kwargs
-        )
+                object_list=posts_filter(
+                    self.object.posts.select_related(
+                        'category', 'location'
+                    ).annotate(comment_count=Count('comments')).order_by(
+                        *Post._meta.ordering
+                    )
+                ),
+                **kwargs
+            )
 
 
 class PostDetailView(DetailView, OnlyAuthorMixin):
@@ -54,8 +59,8 @@ class PostDetailView(DetailView, OnlyAuthorMixin):
         post = super().get_object(queryset)
         if post.author != self.request.user:
             return get_object_or_404(posts_filter(
-                Post.objects.filter(id=self.kwargs['post_id'])
-            ))
+                Post.objects
+            ), id=self.kwargs['post_id'])
         return post
 
     def get_context_data(self, **kwargs):
@@ -71,12 +76,11 @@ class PostListView(ListView):
     template_name = 'blog/index.html'
     paginate_by = PAGINATION_BY
 
-    def get_context_data(self, **kwargs):
-        return super().get_context_data(
-            object_list=posts_filter(
-            ).annotate(comment_count=Count('comments')).order_by('-pub_date'),
-            **kwargs
-        )
+    queryset = posts_filter(
+        Post.objects.select_related('author', 'location', 'category')
+        .annotate(comment_count=Count('comments'))
+        .order_by(*Post._meta.ordering)
+    )
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -101,7 +105,7 @@ class PostUpdateView(PostDeleteUpdateMixin, UpdateView):
     def get_success_url(self):
         return reverse(
             'blog:post_detail',
-            args=[self.object.pk]
+            args=[self.kwargs['post_id']]
         )
 
 
@@ -131,16 +135,16 @@ class ProfileDetailView(DetailView, MultipleObjectMixin):
         return get_object_or_404(User, username=self.kwargs['username'])
 
     def get_context_data(self, **kwargs):
-        object_list_author = Post.objects.filter(author=self.get_object())
-        object_list_not_author = posts_filter(object_list_author)
-        object_list = object_list_author if (
-            self.get_object() == self.request.user
-        ) else object_list_not_author
+        profile = self.get_object()
         context = super().get_context_data(
-            object_list=object_list.annotate(
+            object_list=profile.posts.select_related('author') if (
+                profile == self.request.user
+            ) else posts_filter(
+                profile.posts.select_related('author')
+            ).annotate(
                 comment_count=Count('comments')
-            ).order_by('-pub_date'),
-            profile=self.get_object(),
+            ).order_by(*Post._meta.ordering),
+            profile=profile,
             **kwargs
         )
         return context
@@ -153,12 +157,12 @@ class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     slug_field = 'username'
 
     def get_object(self, queryset=None):
-        return get_object_or_404(User, username=self.kwargs['username'])
+        return get_object_or_404(User, username=self.request.user.username)
 
     def get_success_url(self):
         return reverse(
             'blog:profile',
-            kwargs={'username': self.request.user.username}
+            args=[self.request.user.username]
         )
 
 
@@ -174,7 +178,7 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse(
             'blog:post_detail',
-            args=[self.object.post.pk]
+            args=[self.kwargs['post_id']]
         )
 
 

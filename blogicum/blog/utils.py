@@ -1,9 +1,9 @@
-from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from django.utils import timezone
-from django.urls import reverse
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils import timezone
 
-from .models import Post, Comment
+from .models import Comment, Post
 
 
 class OnlyAuthorMixin(UserPassesTestMixin):
@@ -21,7 +21,7 @@ class CommentDeleteUpdateMixin(OnlyAuthorMixin):
         return reverse(
             'blog:post_detail',
             kwargs={
-                'post_id': self.get_object().post.id
+                'post_id': self.kwargs['post_id']
             }
         )
 
@@ -38,9 +38,9 @@ class PostDeleteUpdateMixin(LoginRequiredMixin, OnlyAuthorMixin):
 
 
 def posts_filter(posts=Post.objects):
-    if hasattr(posts, 'filter'):
-        return posts.filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__is_published=True
-        )
+    posts = posts.filter(
+        pub_date__lte=timezone.now(),
+        is_published=True,
+        category__is_published=True
+    )
+    return posts

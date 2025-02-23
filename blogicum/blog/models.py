@@ -3,6 +3,7 @@ from django.db import models
 
 
 User = get_user_model()
+RELATED_NAME_POSTS = '%(class)ss'
 
 
 class PublishableModel(models.Model):
@@ -36,7 +37,7 @@ class Category(PublishableModel):
     class Meta:
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
-        ordering = ('id',)
+        ordering = ('title',)
 
     def __str__(self):
         return self.title[:21]
@@ -48,7 +49,7 @@ class Location(PublishableModel):
     class Meta:
         verbose_name = 'местоположение'
         verbose_name_plural = 'Местоположения'
-        ordering = ('id',)
+        ordering = ('name',)
 
     def __str__(self):
         return self.name[:21]
@@ -68,21 +69,21 @@ class Post(PublishableModel):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор публикации',
-        related_name='posts'
+        related_name=RELATED_NAME_POSTS
     )
     location = models.ForeignKey(
         Location,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Местоположение',
-        related_name='posts'
+        related_name=RELATED_NAME_POSTS
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Категория',
-        related_name='posts'
+        related_name=RELATED_NAME_POSTS
     )
     image = models.ImageField('Фото', upload_to='posts_images', blank=True)
 
