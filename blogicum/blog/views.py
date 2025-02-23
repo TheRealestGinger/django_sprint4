@@ -34,17 +34,13 @@ class CategoryDetailView(DetailView, MultipleObjectMixin):
         return get_object_or_404(
             Category,
             is_published=True,
-            pk=super().get_object(queryset).pk
+            slug=self.kwargs['category_slug']
         )
 
     def get_context_data(self, **kwargs):
-        return super(CategoryDetailView, self).get_context_data(
+        return super().get_context_data(
             object_list=posts_filter(
-                self.object.posts.select_related(
-                    'category', 'location'
-                ).annotate(comment_count=Count('comments')).order_by(
-                    *Post._meta.ordering
-                )
+                self.object.posts.select_related('category')
             ),
             **kwargs
         )
@@ -59,7 +55,7 @@ class PostDetailView(DetailView, OnlyAuthorMixin):
         post = super().get_object(queryset)
         if post.author != self.request.user:
             return get_object_or_404(posts_filter(
-                Post.objects
+                filter_related=False, filter_comments=False
             ), id=self.kwargs['post_id'])
         return post
 
@@ -76,11 +72,7 @@ class PostListView(ListView):
     template_name = 'blog/index.html'
     paginate_by = PAGINATION_BY
 
-    queryset = posts_filter(
-        Post.objects.select_related('author', 'location', 'category')
-        .annotate(comment_count=Count('comments'))
-        .order_by(*Post._meta.ordering)
-    )
+    queryset = posts_filter()
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -132,19 +124,18 @@ class ProfileDetailView(DetailView, MultipleObjectMixin):
     paginate_by = PAGINATION_BY
 
     def get_object(self, queryset=None):
-        return get_object_or_404(User, username=self.kwargs['username'])
+        return get_object_or_404(
+            User,
+            username=self.kwargs[self.slug_url_kwarg]
+        )
 
     def get_context_data(self, **kwargs):
-        profile = self.get_object()
+        author = self.get_object()
         context = super().get_context_data(
-            object_list=profile.posts.select_related('author') if (
-                profile == self.request.user
-            ) else posts_filter(
-                profile.posts.select_related('author')
-            ).annotate(
-                comment_count=Count('comments')
-            ).order_by(*Post._meta.ordering),
-            profile=profile,
+            object_list=posts_filter(
+                author.posts.select_related('author'), False
+            ),
+            profile=author,
             **kwargs
         )
         return context
@@ -157,7 +148,7 @@ class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     slug_field = 'username'
 
     def get_object(self, queryset=None):
-        return get_object_or_404(User, username=self.request.user.username)
+        return get_object_or_404(User, username=self.request.user)
 
     def get_success_url(self):
         return reverse(

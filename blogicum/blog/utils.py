@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Count
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -20,9 +21,7 @@ class CommentDeleteUpdateMixin(OnlyAuthorMixin):
     def get_success_url(self):
         return reverse(
             'blog:post_detail',
-            kwargs={
-                'post_id': self.kwargs['post_id']
-            }
+            args=[self.kwargs['post_id']]
         )
 
 
@@ -37,12 +36,18 @@ class PostDeleteUpdateMixin(LoginRequiredMixin, OnlyAuthorMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
-def posts_filter(posts=Post.objects):
-    posts = posts.filter(
-        pub_date__lte=timezone.now(),
-        is_published=True,
-        category__is_published=True
-    )
-    posts = posts.select_related('author', 'category')
-    posts = posts.prefetch_related('comments')
-    return posts
+def posts_filter(posts=Post.objects,
+                 filter_posts=True,
+                 filter_related=True,
+                 filter_comments=True):
+    if filter_posts:
+        posts = posts.filter(
+            pub_date__lte=timezone.now(),
+            is_published=True,
+            category__is_published=True
+        )
+    if filter_related:
+        posts = posts.select_related('author', 'category', 'location')
+    if filter_comments:
+        posts = posts.annotate(comment_count=Count('comments'))
+    return posts.order_by(*Post._meta.ordering)
