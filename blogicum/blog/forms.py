@@ -1,10 +1,6 @@
 from django import forms
-from django.contrib.auth import get_user_model
 
-from .models import Post, Comment
-
-
-User = get_user_model()
+from .models import Post, Comment, User
 
 
 class UserForm(forms.ModelForm):
@@ -16,7 +12,7 @@ class UserForm(forms.ModelForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        exclude = ('author', 'is_published', 'comment_count')
+        exclude = ('author',)
         widgets = {
             'pub_date': forms.DateTimeInput(attrs={'type': 'datetime-local'})
         }
