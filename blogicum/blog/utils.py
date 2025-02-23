@@ -43,4 +43,6 @@ def posts_filter(posts=Post.objects):
         is_published=True,
         category__is_published=True
     )
+    posts = posts.select_related('author', 'category')
+    posts = posts.prefetch_related('comments')
     return posts
