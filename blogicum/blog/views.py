@@ -134,8 +134,8 @@ class ProfileDetailView(DetailView, MultipleObjectMixin):
         object_list_author = Post.objects.filter(author=self.get_object())
         object_list_not_author = posts_filter(object_list_author)
         object_list = object_list_author if (
-                self.get_object() == self.request.user
-            ) else object_list_not_author
+            self.get_object() == self.request.user
+        ) else object_list_not_author
         context = super().get_context_data(
             object_list=object_list.annotate(
                 comment_count=Count('comments')

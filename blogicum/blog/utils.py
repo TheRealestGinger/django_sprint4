@@ -44,18 +44,3 @@ def posts_filter(posts=Post.objects):
             is_published=True,
             category__is_published=True
         )
-
-
-# def posts_filter(posts=Post.objects, fetch_author=False, fetch_location=False, fetch_category=False):
-#     posts = posts.filter(
-#         pub_date__lte=timezone.now(),
-#         is_published=True,
-#         category__is_published=True
-#     )
-#     if fetch_author:
-#         posts = posts.select_related('author')
-#     if fetch_location:
-#         posts = posts.select_related('location')
-#     if fetch_category:
-#         posts = posts.select_related('category')
-#     return posts
