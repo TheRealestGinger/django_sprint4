@@ -49,5 +49,7 @@ def posts_filter(posts=Post.objects,
     if filter_related:
         posts = posts.select_related('author', 'category', 'location')
     if filter_comments:
-        posts = posts.annotate(comment_count=Count('comments'))
-    return posts.order_by(*Post._meta.ordering)
+        posts = posts.annotate(
+            comment_count=Count('comments')
+        ).order_by(*Post._meta.ordering)
+    return posts

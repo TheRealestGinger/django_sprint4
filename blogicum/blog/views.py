@@ -33,13 +33,13 @@ class CategoryDetailView(DetailView, MultipleObjectMixin):
         return get_object_or_404(
             Category,
             is_published=True,
-            slug=self.kwargs['category_slug']
+            slug=self.kwargs[self.slug_url_kwarg]
         )
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(
             object_list=posts_filter(
-                self.object.posts.select_related('category')
+                self.object.posts
             ),
             **kwargs
         )
@@ -132,7 +132,8 @@ class ProfileDetailView(DetailView, MultipleObjectMixin):
         author = self.get_object()
         context = super().get_context_data(
             object_list=posts_filter(
-                author.posts.select_related('author'), False
+                author.posts.select_related('author'),
+                False if author == self.request.user else True
             ),
             profile=author,
             **kwargs
@@ -147,7 +148,10 @@ class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     slug_field = 'username'
 
     def get_object(self, queryset=None):
-        return get_object_or_404(User, username=self.request.user)
+        return get_object_or_404(
+            User,
+            username=self.kwargs[self.slug_field]
+        )
 
     def get_success_url(self):
         return reverse(
