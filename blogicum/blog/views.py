@@ -150,7 +150,7 @@ class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     def get_object(self, queryset=None):
         return get_object_or_404(
             User,
-            username=str(self.request.user)
+            username=self.request.user.username
         )
 
     def get_success_url(self):
