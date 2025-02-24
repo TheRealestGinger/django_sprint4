@@ -148,10 +148,7 @@ class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     slug_field = 'username'
 
     def get_object(self, queryset=None):
-        return get_object_or_404(
-            User,
-            username=self.request.user.username
-        )
+        return self.request.user
 
     def get_success_url(self):
         return reverse(
